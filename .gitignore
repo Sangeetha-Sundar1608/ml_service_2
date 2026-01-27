@@ -43,3 +43,44 @@ htmlcov/
 models/
 *.pth
 *.onnx
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Environment variables (NEVER PUSH THIS!)
+.env
+.env.*
+
+# Database
+*.db
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Celery
+celerybeat-schedule
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
