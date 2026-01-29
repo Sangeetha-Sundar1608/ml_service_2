@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-service
+  labels:
+    app: vllm-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-service
+  template:
+    metadata:
+      labels:
+        app: vllm-service
+    spec:
+      nodeSelector:
+        gpu: "true"  # Schedule only on GPU nodes
+      containers:
+      - name: vllm
+        image: vllm/vllm-openai:latest
+        command:
+        - "python"
+        - "-m"
+        - "vllm.entrypoints.openai.api_server"
+        args:
+        - "--model"
+        - "meta-llama/Llama-3.2-3B"
+        - "--port"
+        - "8000"
+        - "--tensor-parallel-size"
+        - "1"
+        - "--max-model-len"
+        - "4096"
+        - "--gpu-memory-utilization"
+        - "0.9"
+        ports:
+        - containerPort: 8000
+          name: http
+        resources:
+          requests:
+            memory: "30Gi"
+            nvidia.com/gpu: 1
+          limits:
+            memory: "30Gi"
+            nvidia.com/gpu: 1
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 300  # Model loading takes time
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 300
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-service
+spec:
+  selector:
+    app: vllm-service
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000
+  type: ClusterIP

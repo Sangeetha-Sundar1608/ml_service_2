@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package vllm;
+
+// vLLM Inference Service
+service InferenceService {
+  // Perform inference
+  rpc Infer(InferRequest) returns (InferResponse);
+  
+  // Stream inference (token by token)
+  rpc InferStream(InferRequest) returns (stream InferStreamResponse);
+  
+  // Health check
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+// Inference request
+message InferRequest {
+  string model = 1;
+  repeated Message messages = 2;
+  float temperature = 3;
+  int32 max_tokens = 4;
+  float top_p = 5;
+}
+
+// Chat message
+message Message {
+  string role = 1;
+  string content = 2;
+}
+
+// Inference response
+message InferResponse {
+  string content = 1;
+  int32 tokens_used = 2;
+  string model = 3;
+  string finish_reason = 4;
+}
+
+// Stream response (for streaming)
+message InferStreamResponse {
+  string token = 1;
+  bool is_final = 2;
+}
+
+// Health check
+message HealthRequest {}
+
+message HealthResponse {
+  bool healthy = 1;
+  string status = 2;
+}

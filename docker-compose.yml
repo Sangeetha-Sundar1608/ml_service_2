@@ -1,0 +1,203 @@
+version: '3.8'
+
+services:
+  # ML Service (main application)
+  ml-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ml-service
+    ports:
+      - "8001:8001"
+    environment:
+      # Service config
+      ENVIRONMENT: development
+      DEBUG: "true"
+      ML_SERVICE_PORT: 8001
+      LOG_LEVEL: INFO
+      
+      # LLM Providers
+      VLLM_SERVICE_URL: ${VLLM_SERVICE_URL:-http://vllm:8000}
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      
+      # Database & Redis
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/ml_service
+      REDIS_URL: redis://redis:6379
+      
+      # Celery
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./ml_service:/app/ml_service
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - ml-network
+
+  # Celery Worker (async tasks)
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: celery-worker
+    command: celery -A celery_app worker --loglevel=info --concurrency=4
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/ml_service
+      REDIS_URL: redis://redis:6379
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      - redis
+      - postgres
+    volumes:
+      - ./ml_service:/app/ml_service
+    restart: unless-stopped
+    networks:
+      - ml-network
+
+  # Celery Beat (periodic tasks)
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: celery-beat
+    command: celery -A celery_app beat --loglevel=info
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/ml_service
+      REDIS_URL: redis://redis:6379
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    depends_on:
+      - redis
+      - postgres
+    restart: unless-stopped
+    networks:
+      - ml-network
+
+  # PostgreSQL (database)
+  postgres:
+    image: postgres:15-alpine
+    container_name: ml-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ml_service
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - ml-network
+
+  # Redis (cache & message broker)
+  redis:
+    image: redis:7-alpine
+    container_name: ml-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - ml-network
+
+  # Ollama (CPU fallback - optional)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ml-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    networks:
+      - ml-network
+    # Pull model on startup
+    command: >
+      sh -c "ollama serve & sleep 5 && ollama pull llama3.2:3b && wait"
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  ollama_data:
+    driver: local
+
+networks:
+  ml-network:
+    driver: bridge
+```
+
+---
+
+# 27. .dockerignore
+```
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+logs/
+
+# Models (will be downloaded at runtime)
+models/
+*.pth
+*.onnx
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# CI/CD
+.github/
