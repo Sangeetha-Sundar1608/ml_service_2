@@ -72,24 +72,34 @@ class DocumentProcessor:
         
         logger.info(f"Processing {doc_format.value} document: {file_path}")
         
+        import time
+        start_time = time.time()
+        
         # Route to appropriate processor
+        result_dict = {}
+        
         if doc_format == DocumentFormat.PDF:
             result = await self.pdf_processor.extract(file_path)
-            return result.dict()
+            result_dict = result.dict()
         
         elif doc_format == DocumentFormat.DOCX:
             result = await self.docx_processor.extract(file_path)
-            return result.dict()
+            result_dict = result.dict()
         
         elif doc_format == DocumentFormat.IMAGE:
             result = await self.ocr_processor.extract(file_path)
-            return result.dict()
-        
+            result_dict = result.dict()
+            
         else:
             raise ValueError(
                 f"Unsupported document format: {path.suffix}. "
                 f"Supported: .pdf, .docx, .jpg, .png, .gif, .bmp, .tiff"
             )
+
+        # Add processing time
+        result_dict["processing_time_ms"] = int((time.time() - start_time) * 1000)
+        
+        return result_dict
     
     def _detect_format(
         self,

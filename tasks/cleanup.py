@@ -11,7 +11,7 @@ from celery import Task
 
 from celery_app import celery_app
 from models.db_models import AsyncJob, ProviderUsageLog
-from models import SessionLocal
+from dependencies import SessionLocal
 
 logger = logging.getLogger(__name__)
 

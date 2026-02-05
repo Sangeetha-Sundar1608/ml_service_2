@@ -13,7 +13,7 @@ from models.request_models import EmbeddingRequest, BatchEmbeddingRequest
 from models.response_models import EmbeddingResponse, BatchEmbeddingResponse, JobStatusResponse
 from services.embedding_service import EmbeddingService
 from services.cost_tracker import CostTracker
-from main import get_embedding_service, get_cost_tracker, get_db
+from dependencies import get_embedding_service, get_cost_tracker, get_db
 from sqlalchemy.orm import Session
 
 # Import your existing Celery task

@@ -11,7 +11,7 @@ from models.request_models import LLMInferenceRequest
 from models.response_models import LLMInferenceResponse
 from services.llm_router import LLMRouter, AllProvidersFailedError
 from services.cost_tracker import CostTracker
-from main import get_llm_router, get_cost_tracker, get_db
+from dependencies import get_llm_router, get_cost_tracker, get_db
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)

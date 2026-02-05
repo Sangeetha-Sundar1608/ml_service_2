@@ -8,7 +8,6 @@ import logging
 import time
 from typing import List, Dict, Any, Optional
 from functools import lru_cache
-from sentence_transformers import SentenceTransformer
 
 from clients.openai_client import OpenAIClient
 
@@ -55,13 +54,18 @@ class EmbeddingService:
         )
     
     @property
-    def model(self) -> SentenceTransformer:
+    def model(self):
         """Lazy load model on first access"""
         if self._model is None:
             logger.info(f"Loading embedding model: {self.model_name}")
             start_time = time.time()
             
-            self._model = SentenceTransformer(self.model_name)
+            try:
+                from sentence_transformers import SentenceTransformer
+                self._model = SentenceTransformer(self.model_name)
+            except ImportError:
+                logger.error("❌ sentence-transformers not installed. Local embeddings disabled.")
+                raise RuntimeError("sentence-transformers library missing. Install it or use OpenAI fallback.")
             
             self._first_load_time = time.time() - start_time
             logger.info(

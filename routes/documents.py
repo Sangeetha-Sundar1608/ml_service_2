@@ -13,7 +13,7 @@ from pathlib import Path
 from models.request_models import DocumentFormat
 from models.response_models import DocumentParseResponse
 from services.document_processor import DocumentProcessor
-from main import get_document_processor
+from dependencies import get_document_processor
 
 logger = logging.getLogger(__name__)
 

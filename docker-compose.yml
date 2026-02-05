@@ -15,17 +15,17 @@ services:
       DEBUG: "true"
       ML_SERVICE_PORT: 8001
       LOG_LEVEL: INFO
-      
+
       # LLM Providers
       VLLM_SERVICE_URL: ${VLLM_SERVICE_URL:-http://vllm:8000}
       OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      
+
       # Database & Redis
       DATABASE_URL: postgresql://postgres:password@postgres:5432/ml_service
       REDIS_URL: redis://redis:6379
-      
+
       # Celery
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
@@ -91,11 +91,11 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: ml_service
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -112,28 +112,27 @@ services:
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
     networks:
       - ml-network
-
   # Ollama (CPU fallback - optional)
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ml-ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-    networks:
-      - ml-network
-    # Pull model on startup
-    command: >
-      sh -c "ollama serve & sleep 5 && ollama pull llama3.2:3b && wait"
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: ml-ollama
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   restart: unless-stopped
+  #   networks:
+  #     - ml-network
+  #   # Pull model on startup
+  #   command: >
+  #     sh -c "ollama serve & sleep 5 && ollama pull llama3.2:3b && wait"
 
 volumes:
   postgres_data:
@@ -146,58 +145,3 @@ volumes:
 networks:
   ml-network:
     driver: bridge
-```
-
----
-
-# 27. .dockerignore
-```
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-ENV/
-.venv
-
-# Environment
-.env
-.env.local
-
-# IDE
-.vscode/
-.idea/
-*.swp
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Git
-.git/
-.gitignore
-
-# Tests
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Logs
-*.log
-logs/
-
-# Models (will be downloaded at runtime)
-models/
-*.pth
-*.onnx
-
-# Documentation
-docs/
-*.md
-!README.md
-
-# CI/CD
-.github/

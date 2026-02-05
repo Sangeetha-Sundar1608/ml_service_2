@@ -11,13 +11,13 @@ import logging
 import sys
 from datetime import datetime
 
-from ml_service.config import settings
-from ml_service.routes import llm, embeddings, documents, health, analytics
-from ml_service.services.llm_router import LLMRouter
-from ml_service.services.embedding_service import EmbeddingService
-from ml_service.services.document_processor import DocumentProcessor
-from ml_service.services.health_check import HealthChecker
-from ml_service.services.cost_tracker import CostTracker
+from config import settings
+from routes import llm, embeddings, documents, health, analytics
+from services.llm_router import LLMRouter
+from services.embedding_service import EmbeddingService
+from services.document_processor import DocumentProcessor
+from services.health_check import HealthChecker
+from services.cost_tracker import CostTracker
 
 # Configure structured JSON logging
 logging.basicConfig(
@@ -28,17 +28,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# Global service instances (dependency injection)
-class ServiceContainer:
-    """Shared service instances across the application"""
-    llm_router: LLMRouter = None
-    embedding_service: EmbeddingService = None
-    document_processor: DocumentProcessor = None
-    health_checker: HealthChecker = None
-    cost_tracker: CostTracker = None
-
-
-services = ServiceContainer()
+from dependencies import services
 
 
 @asynccontextmanager
@@ -144,8 +134,8 @@ async def root():
     """Service info"""
     return {
         "service": "ML Service",
-        "version": "3.0.0",
-        "status": "running",
+        "version": "3.0.1",
+        "status": "running - 3.0.1",
         "endpoints": {
             "health": "/ml/v1/health",
             "llm": "/ml/v1/llm/*",
@@ -156,30 +146,7 @@ async def root():
     }
 
 
-# Dependency injection helper (used in routes)
-def get_llm_router() -> LLMRouter:
-    """Get LLM router instance"""
-    return services.llm_router
 
-
-def get_embedding_service() -> EmbeddingService:
-    """Get embedding service instance"""
-    return services.embedding_service
-
-
-def get_document_processor() -> DocumentProcessor:
-    """Get document processor instance"""
-    return services.document_processor
-
-
-def get_health_checker() -> HealthChecker:
-    """Get health checker instance"""
-    return services.health_checker
-
-
-def get_cost_tracker() -> CostTracker:
-    """Get cost tracker instance"""
-    return services.cost_tracker
 
 
 if __name__ == "__main__":

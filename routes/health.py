@@ -8,14 +8,14 @@ import logging
 
 from models.response_models import HealthResponse
 from services.health_check import HealthChecker
-from main import get_health_checker
+from dependencies import get_health_checker
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 
-@router.get("", response_model=HealthResponse)
+@router.get("/health", response_model=HealthResponse)
 async def health_check(
     health_checker: HealthChecker = Depends(get_health_checker),
 ):

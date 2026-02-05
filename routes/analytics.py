@@ -11,7 +11,7 @@ import logging
 from models.request_models import TimeRange
 from models.response_models import AnalyticsResponse, ProviderUsage
 from services.cost_tracker import CostTracker
-from main import get_cost_tracker, get_db
+from dependencies import get_cost_tracker, get_db
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
