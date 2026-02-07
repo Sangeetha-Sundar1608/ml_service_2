@@ -39,9 +39,10 @@ opencv-python-headless==4.9.0.80
 # Utilities
 python-dotenv==1.0.0
 psutil==5.9.7
+requests==2.31.0
 
-# Monitoring (optional)
-# GPUtil==1.4.0
+# Monitoring
+GPUtil==1.4.0
 
 # Testing
 pytest==7.4.4
