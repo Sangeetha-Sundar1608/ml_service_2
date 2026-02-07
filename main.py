@@ -18,6 +18,9 @@ from services.embedding_service import EmbeddingService
 from services.document_processor import DocumentProcessor
 from services.health_check import HealthChecker
 from services.cost_tracker import CostTracker
+from clients.vllm_client import VLLMClient
+from clients.ollama_client import OllamaClient
+from clients.openai_client import OpenAIClient
 
 # Configure structured JSON logging
 logging.basicConfig(
@@ -41,10 +44,35 @@ async def lifespan(app: FastAPI):
     
     # Initialize services
     try:
-        services.llm_router = LLMRouter()
-        services.embedding_service = EmbeddingService()
+        # Initialize LLM clients
+        vllm_client = None
+        ollama_client = None
+        openai_client = None
+        
+        if settings.VLLM_SERVICE_URL:
+            vllm_client = VLLMClient(base_url=settings.VLLM_SERVICE_URL)
+        
+        if settings.OLLAMA_URL:
+            ollama_client = OllamaClient(base_url=settings.OLLAMA_URL)
+        
+        if settings.OPENAI_API_KEY:
+            openai_client = OpenAIClient(api_key=settings.OPENAI_API_KEY)
+        
+        # Initialize services with clients
+        services.llm_router = LLMRouter(
+            vllm_client=vllm_client,
+            ollama_client=ollama_client,
+            openai_client=openai_client
+        )
+        services.embedding_service = EmbeddingService(openai_client=openai_client)
         services.document_processor = DocumentProcessor()
-        services.health_checker = HealthChecker()
+        services.health_checker = HealthChecker(
+            vllm_client=vllm_client,
+            ollama_client=ollama_client,
+            openai_client=openai_client,
+            embedding_service=services.embedding_service,
+            document_processor=services.document_processor
+        )
         services.cost_tracker = CostTracker()
         
         logger.info("✅ All services initialized successfully")

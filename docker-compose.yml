@@ -1,7 +1,5 @@
-version: '3.8'
-
 services:
-  # ML Service (main application)
+  # 1. ML Service (The Brain)
   ml-service:
     build:
       context: .
@@ -10,23 +8,14 @@ services:
     ports:
       - "8001:8001"
     environment:
-      # Service config
-      ENVIRONMENT: development
-      DEBUG: "true"
+      ENVIRONMENT: production
       ML_SERVICE_PORT: 8001
-      LOG_LEVEL: INFO
-
-      # LLM Providers
-      VLLM_SERVICE_URL: ${VLLM_SERVICE_URL:-http://vllm:8000}
-      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      # Connect to the AI models below
+      VLLM_SERVICE_URL: http://vllm:8000/v1
+      OLLAMA_URL: http://ollama:11434
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-
-      # Database & Redis
       DATABASE_URL: postgresql://postgres:password@postgres:5432/ml_service
       REDIS_URL: redis://redis:6379
-
-      # Celery
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
     depends_on:
@@ -37,11 +26,11 @@ services:
     volumes:
       - ./ml_service:/app/ml_service
       - ./logs:/app/logs
-    restart: unless-stopped
+    restart: always
     networks:
       - ml-network
 
-  # Celery Worker (async tasks)
+  # 2. Celery Worker (Background Jobs)
   celery-worker:
     build:
       context: .
@@ -59,30 +48,52 @@ services:
       - postgres
     volumes:
       - ./ml_service:/app/ml_service
-    restart: unless-stopped
+    restart: always
     networks:
       - ml-network
 
-  # Celery Beat (periodic tasks)
-  celery-beat:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: celery-beat
-    command: celery -A celery_app beat --loglevel=info
+  # 3. vLLM (GPU Inference - The Big AI)
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: ml-vllm
+    runtime: nvidia
+    ports:
+      - "8000:8000"
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
     environment:
-      DATABASE_URL: postgresql://postgres:password@postgres:5432/ml_service
-      REDIS_URL: redis://redis:6379
-      CELERY_BROKER_URL: redis://redis:6379/0
-      CELERY_RESULT_BACKEND: redis://redis:6379/1
-    depends_on:
-      - redis
-      - postgres
-    restart: unless-stopped
+      HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: --model facebook/opt-125m --host 0.0.0.0 --port 8000
     networks:
       - ml-network
 
-  # PostgreSQL (database)
+  # 4. Ollama (Local AI Fallback)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ml-ollama
+    ports:
+      - "11435:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: always
+    networks:
+      - ml-network
+
+  # 5. Database (Postgres)
   postgres:
     image: postgres:15-alpine
     container_name: ml-postgres
@@ -91,7 +102,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: ml_service
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -99,16 +110,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
+    restart: always
     networks:
       - ml-network
 
-  # Redis (cache & message broker)
+  # 6. Redis (Cache)
   redis:
     image: redis:7-alpine
     container_name: ml-redis
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -116,31 +127,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
+    restart: always
     networks:
       - ml-network
-  # Ollama (CPU fallback - optional)
-  # ollama:
-  #   image: ollama/ollama:latest
-  #   container_name: ml-ollama
-  #   ports:
-  #     - "11434:11434"
-  #   volumes:
-  #     - ollama_data:/root/.ollama
-  #   restart: unless-stopped
-  #   networks:
-  #     - ml-network
-  #   # Pull model on startup
-  #   command: >
-  #     sh -c "ollama serve & sleep 5 && ollama pull llama3.2:3b && wait"
 
 volumes:
   postgres_data:
-    driver: local
   redis_data:
-    driver: local
   ollama_data:
-    driver: local
 
 networks:
   ml-network:
