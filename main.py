@@ -19,6 +19,7 @@ from services.document_processor import DocumentProcessor
 from services.health_check import HealthChecker
 from services.cost_tracker import CostTracker
 from clients.vllm_client import VLLMClient
+from clients.vllm_grpc_client import VLLMGRPCClient
 from clients.ollama_client import OllamaClient
 from clients.openai_client import OpenAIClient
 
@@ -46,11 +47,15 @@ async def lifespan(app: FastAPI):
     try:
         # Initialize LLM clients
         vllm_client = None
+        vllm_grpc_client = None
         ollama_client = None
         openai_client = None
         
         if settings.VLLM_SERVICE_URL:
             vllm_client = VLLMClient(base_url=settings.VLLM_SERVICE_URL)
+            
+        if settings.VLLM_GRPC_URL:
+            vllm_grpc_client = VLLMGRPCClient(address=settings.VLLM_GRPC_URL)
         
         if settings.OLLAMA_URL:
             ollama_client = OllamaClient(base_url=settings.OLLAMA_URL)
@@ -61,6 +66,7 @@ async def lifespan(app: FastAPI):
         # Initialize services with clients
         services.llm_router = LLMRouter(
             vllm_client=vllm_client,
+            vllm_grpc_client=vllm_grpc_client,
             ollama_client=ollama_client,
             openai_client=openai_client
         )
@@ -79,6 +85,7 @@ async def lifespan(app: FastAPI):
         
         # Log provider configuration
         logger.info(f"vLLM URL: {settings.VLLM_SERVICE_URL or 'Not configured'}")
+        logger.info(f"vLLM gRPC: {settings.VLLM_GRPC_URL or 'Not configured'}")
         logger.info(f"Ollama URL: {settings.OLLAMA_URL or 'Not configured'}")
         logger.info(f"OpenAI: {'Configured' if settings.OPENAI_API_KEY else 'Not configured'}")
         logger.info(f"Anthropic: {'Configured' if settings.ANTHROPIC_API_KEY else 'Not configured'}")

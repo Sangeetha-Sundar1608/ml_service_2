@@ -13,6 +13,7 @@ services:
       ML_SERVICE_PORT: 8001
       # Connect to the AI models below
       VLLM_SERVICE_URL: http://vllm:8000/v1
+      VLLM_GRPC_URL: vllm:9000
       OLLAMA_URL: http://ollama:11434
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       DATABASE_URL: postgresql://postgres:password@postgres:5432/ml_service
@@ -60,6 +61,7 @@ services:
     runtime: nvidia
     ports:
       - "8000:8000"
+      - "9000:9000"
     volumes:
       - ~/.cache/huggingface:/root/.cache/huggingface
     environment:
@@ -70,7 +72,7 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu]
+              capabilities: [ gpu ]
     command: --model facebook/opt-125m --host 0.0.0.0 --port 8000
     networks:
       - ml-network
@@ -89,7 +91,7 @@ services:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [gpu]
+              capabilities: [ gpu ]
     restart: always
     networks:
       - ml-network
@@ -136,6 +138,7 @@ volumes:
   postgres_data:
   redis_data:
   ollama_data:
+
 
 networks:
   ml-network:

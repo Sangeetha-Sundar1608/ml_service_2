@@ -20,6 +20,15 @@ COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
+# Generate gRPC code from protos
+COPY protos/ /app/protos/
+RUN mkdir -p /app/generated && \
+    python -m grpc_tools.protoc \
+    -I/app/protos \
+    --python_out=/app/generated \
+    --grpc_python_out=/app/generated \
+    /app/protos/vllm.proto
+
 
 # Stage 2: Runtime
 FROM python:3.11-slim

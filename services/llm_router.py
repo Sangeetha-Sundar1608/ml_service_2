@@ -10,6 +10,7 @@ from typing import Dict, Any, Optional, List
 from enum import Enum
 
 from clients.vllm_client import VLLMClient
+from clients.vllm_grpc_client import VLLMGRPCClient
 from clients.ollama_client import OllamaClient
 from clients.openai_client import OpenAIClient
 
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 class LLMProvider(str, Enum):
     """LLM provider enumeration"""
     VLLM = "vllm"
+    VLLM_GRPC = "vllm_grpc"
     OLLAMA = "ollama"
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
@@ -55,6 +57,7 @@ class LLMRouter:
     def __init__(
         self,
         vllm_client: Optional[VLLMClient] = None,
+        vllm_grpc_client: Optional[VLLMGRPCClient] = None,
         ollama_client: Optional[OllamaClient] = None,
         openai_client: Optional[OpenAIClient] = None,
         circuit_threshold: int = 5,
@@ -73,6 +76,7 @@ class LLMRouter:
             health_cache_ttl: Seconds to cache health check results
         """
         self.vllm_client = vllm_client
+        self.vllm_grpc_client = vllm_grpc_client
         self.ollama_client = ollama_client
         self.openai_client = openai_client
         
@@ -124,6 +128,7 @@ class LLMRouter:
         """
         # Define provider priority
         providers = [
+            (LLMProvider.VLLM_GRPC, self.vllm_grpc_client),
             (LLMProvider.VLLM, self.vllm_client),
             (LLMProvider.OLLAMA, self.ollama_client),
             (LLMProvider.OPENAI, self.openai_client),
@@ -246,11 +251,18 @@ class LLMRouter:
         """
         results = {}
         
-        # Check vLLM
+        # Check vLLM REST
         if self.vllm_client:
             results["vllm"] = await self._check_provider_health(
                 LLMProvider.VLLM,
                 self.vllm_client
+            )
+            
+        # Check vLLM gRPC
+        if self.vllm_grpc_client:
+            results["vllm_grpc"] = await self._check_provider_health(
+                LLMProvider.VLLM_GRPC,
+                self.vllm_grpc_client
             )
         
         # Check Ollama
