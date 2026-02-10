@@ -44,7 +44,10 @@ class VLLMClient:
         """
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
-                response = await client.get(f"{self.base_url}/health")
+                # vLLM uses /ping endpoint (without /v1 prefix)
+                # base_url is http://vllm:8000/v1, so we need to go up one level
+                base_url_without_v1 = self.base_url.rsplit('/v1', 1)[0]
+                response = await client.get(f"{base_url_without_v1}/ping")
                 is_healthy = response.status_code == 200
                 
                 if is_healthy:

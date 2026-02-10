@@ -268,23 +268,25 @@ class HealthChecker:
         
         # GPU info (if available)
         try:
-            import GPUtil
-            gpus = GPUtil.getGPUs()
+            import torch
             
-            if gpus:
-                gpu = gpus[0]  # First GPU
+            if torch.cuda.is_available():
                 resources["gpu_available"] = True
-                resources["gpu_memory_gb"] = round(gpu.memoryUsed / 1024, 2)
-                resources["gpu_memory_total_gb"] = round(gpu.memoryTotal / 1024, 2)
+                # Get GPU memory info
+                gpu_memory_total = torch.cuda.get_device_properties(0).total_memory / (1024**3)
+                gpu_memory_used = torch.cuda.memory_allocated(0) / (1024**3)
+                
+                resources["gpu_memory_gb"] = round(gpu_memory_used, 2)
+                resources["gpu_memory_total_gb"] = round(gpu_memory_total, 2)
                 resources["gpu_memory_percent"] = round(
-                    (gpu.memoryUsed / gpu.memoryTotal) * 100, 1
+                    (gpu_memory_used / gpu_memory_total) * 100, 1
                 )
-                resources["gpu_name"] = gpu.name
+                resources["gpu_name"] = torch.cuda.get_device_name(0)
             else:
                 resources["gpu_available"] = False
         
         except ImportError:
-            # GPUtil not installed
+            logger.debug("PyTorch not available for GPU detection")
             resources["gpu_available"] = False
         except Exception as e:
             logger.debug(f"GPU check failed: {e}")

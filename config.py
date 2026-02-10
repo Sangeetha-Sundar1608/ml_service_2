@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     ANTHROPIC_TIMEOUT: int = 60
     ANTHROPIC_MAX_RETRIES: int = 3
     
+    # Hugging Face (Model downloads)
+    HUGGING_FACE_HUB_TOKEN: Optional[str] = None  # For accessing private HF models
+    
     # ============================================
     # CIRCUIT BREAKER
     # ============================================
