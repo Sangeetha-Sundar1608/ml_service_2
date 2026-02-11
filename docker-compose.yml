@@ -73,7 +73,7 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [ gpu ]
-    command: --model facebook/opt-125m --host 0.0.0.0 --port 8000 --experimental-gRPC-endpoint
+    command: --model meta-llama/Llama-3.2-3B --host 0.0.0.0 --port 8000 --experimental-gRPC-endpoint
     networks:
       - ml-network
 
