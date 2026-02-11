@@ -43,6 +43,7 @@ RUN apt-get update && apt-get install -y \
 
 # Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
+COPY --from=builder /app/generated /app/generated
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Set working directory

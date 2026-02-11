@@ -61,7 +61,7 @@ services:
     runtime: nvidia
     ports:
       - "8000:8000"
-      - "9000:9000"
+      - "9002:9000"
     volumes:
       - ~/.cache/huggingface:/root/.cache/huggingface
     environment:

@@ -17,6 +17,8 @@ try:
     import vllm_pb2
     import vllm_pb2_grpc
 except ImportError:
+    vllm_pb2 = None
+    vllm_pb2_grpc = None
     logger = logging.getLogger(__name__)
     logger.warning("⚠️ vLLM gRPC stubs not found. Using mocks or waiting for build.")
 
@@ -40,6 +42,10 @@ class VLLMGRPCClient:
             model_name: Default model name
             timeout: Request timeout in seconds
         """
+        if vllm_pb2_grpc is None:
+            logger.error("❌ vLLM gRPC stubs not found! Cannot initialize gRPC client.")
+            raise ImportError("vLLM gRPC stubs not found. Run the build process to generate them.")
+
         self.address = address
         self.model_name = model_name
         self.timeout = timeout
