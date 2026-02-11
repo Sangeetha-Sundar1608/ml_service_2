@@ -137,7 +137,6 @@ async def serve():
         tensor_parallel_size=args.tensor_parallel_size,
         gpu_memory_utilization=args.gpu_memory_utilization,
         max_model_len=args.max_model_len,
-        engine_use_ray=False, # Standard setup
     )
     engine = AsyncLLMEngine.from_engine_args(engine_args)
     logger.info(f"🚀 vLLM Engine initialized for model: {args.model}")
