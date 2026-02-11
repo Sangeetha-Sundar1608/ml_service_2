@@ -328,20 +328,59 @@ class CostTracker:
             }
             
             # Per-provider breakdown
-            for provider in ["vllm", "ollama", "openai", "anthropic"]:
-                provider_logs = [log for log in logs if log.provider.value == provider]
+            for provider_enum in ProviderEnum:
+                provider = provider_enum.value
+                provider_logs = [log for log in logs if log.provider == provider_enum]
                 
                 if provider_logs:
+                    # latency calc
+                    latencies = sorted([log.latency_ms for log in provider_logs])
+                    avg_latency = sum(latencies) / len(latencies)
+                    p95_latency = latencies[int(len(latencies) * 0.95)] if latencies else 0
+                    
+                    success_count = sum(1 for log in provider_logs if log.success)
+                    error_count = len(provider_logs) - success_count
+                    
                     summary["providers"][provider] = {
                         "requests": len(provider_logs),
+                        "requests_success": success_count,
+                        "requests_failed": error_count,
                         "tokens": sum(log.total_tokens for log in provider_logs),
                         "cost_usd": sum(log.cost_usd for log in provider_logs),
-                        "avg_latency_ms": sum(log.latency_ms for log in provider_logs) / len(provider_logs),
+                        "avg_latency_ms": avg_latency,
+                        "p95_latency_ms": p95_latency,
                     }
+                    
+                    # Check performance alerts immediately for this batch
+                    self._check_performance_alerts(provider, error_count, len(provider_logs), p95_latency)
             
             return summary
             
         except Exception as e:
             logger.error(f"Failed to get daily summary: {e}")
             return {}
+
+    def _check_performance_alerts(
+        self,
+        provider: str,
+        error_count: int,
+        total_count: int,
+        p95_latency: float
+    ) -> None:
+        """Check for error rate and latency alerts"""
+        # Alert if error rate > 5% (min 20 requests to avoid noise)
+        if total_count >= 20:
+            error_rate = (error_count / total_count) * 100
+            if error_rate > 5.0:
+                logger.warning(
+                    f"⚠️ High error rate for {provider}: {error_rate:.1f}% "
+                    f"({error_count}/{total_count} failed)"
+                )
+        
+        # Alert if p95 latency > 2 seconds (2000ms)
+        if p95_latency > 2000:
+            logger.warning(
+                f"⚠️ High latency for {provider}: p95={p95_latency}ms "
+                f"(threshold: 2000ms)"
+            )
         

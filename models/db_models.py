@@ -67,6 +67,7 @@ class AsyncJob(Base):
 class ProviderEnum(str, enum.Enum):
     """LLM provider enumeration"""
     VLLM = "vllm"
+    VLLM_GRPC = "vllm_grpc"
     OLLAMA = "ollama"
     OPENAI = "openai"
     ANTHROPIC = "anthropic"

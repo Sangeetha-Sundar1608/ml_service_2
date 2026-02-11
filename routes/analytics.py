@@ -96,11 +96,11 @@ async def get_provider_usage(
                 ProviderUsage(
                     provider=prov_name,
                     requests_total=prov_data.get("requests", 0),
-                    requests_success=prov_data.get("requests", 0),  # TODO: track failures
-                    requests_failed=0,
+                    requests_success=prov_data.get("requests_success", 0),
+                    requests_failed=prov_data.get("requests_failed", 0),
                     tokens_total=prov_data.get("tokens", 0),
                     latency_avg_ms=prov_data.get("avg_latency_ms", 0),
-                    latency_p95_ms=prov_data.get("avg_latency_ms", 0) * 1.5,  # Estimate
+                    latency_p95_ms=prov_data.get("p95_latency_ms", 0),
                     cost_usd=prov_data.get("cost_usd", 0.0),
                 )
             )
