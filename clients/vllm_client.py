@@ -116,8 +116,10 @@ class VLLMClient:
             
             # Make request
             async with httpx.AsyncClient(timeout=self.timeout) as client:
+                # Check if base_url already contains /v1 to avoid double prefixing
+                url = f"{self.base_url}/chat/completions" if self.base_url.endswith('/v1') else f"{self.base_url}/v1/chat/completions"
                 response = await client.post(
-                    f"{self.base_url}/v1/chat/completions",
+                    url,
                     json=payload
                 )
                 response.raise_for_status()
